@@ -1,4 +1,4 @@
-import { RawPokemonData } from './types';
+import { RawPokemonData } from './types.ts';
 
 export const DEFAULT_COLLECTION_CSV = `SystemKey,Name,ApiId,DisplayId,Category,ParentKey,Owned,Value,ImageURL,FanArtURL,CardType,DreamURL,IdealURL,IsTrainer
 1," ",1,001,Base,,FALSE,"","https://cdn11.bigcommerce.com/s-b4ioc4fed9/images/stencil/1280x1280/products/559923/2810744/cdCHxrRi8TqChI55NxHrgdWFp__26653.1762853278.jpg?c=1","","standard","https://images.pokemontcg.io/sv3pt5/167_hires.png","https://images.pokemontcg.io/sv3pt5/166_hires.png",FALSE
@@ -158,7 +158,6 @@ export const DEFAULT_COLLECTION_CSV = `SystemKey,Name,ApiId,DisplayId,Category,P
 386-deoxys,"Deoxys",386,386,Manual,,FALSE,"","https://storage.googleapis.com/images.pricecharting.com/e31a868224963621158a7aaa7914073770a87de48cf329dd8b6e287043d6a157/1600.jpg","","standard","","",FALSE
 386-deoxys-extra-1768652713270,"Deoxys (Slot)",386,386,Slot,386-deoxys,FALSE,"","https://storage.googleapis.com/images.pricecharting.com/93c7a0626b58cb5e7e0c0fcceed6931fad5920ef81575f2f479185c41df69d68/530.jpg","","VMAX","","",FALSE`;
 
-// Mixed array of strings and objects as per original code structure (Used for App initialization)
 export const RAW_POKEMON: (string | RawPokemonData)[] = [
     { name: "Bulbasaur", cardImage: "https://images.pokemontcg.io/sv3pt5/166_hires.png" },
     { name: "Ivysaur", cardImage: "https://images.pokemontcg.io/sv3pt5/167_hires.png" },

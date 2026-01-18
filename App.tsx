@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { PokemonEntry, Binder, CustomSlots, FilterSettings, RawPokemonData } from './types';
-import { RAW_POKEMON, DEFAULT_COLLECTION_CSV } from './constants';
-import { parseCSVRow, parseCSVData } from './utils';
+import { PokemonEntry, Binder, CustomSlots, FilterSettings } from './types.ts';
+import { RAW_POKEMON, DEFAULT_COLLECTION_CSV } from './constants.ts';
+import { parseCSVData } from './utils.ts';
 import { 
     IconSearch, IconCheck, IconDna, IconDownload, IconUpload, IconTrash, 
     IconSort, IconEye, IconMenu, IconX, IconGraph, IconFilter, IconSave, 
     IconStar, IconSparkles 
-} from './components/Icons';
-import { Toast, ConfirmDialog } from './components/UI';
-import StatsBar from './components/StatsBar';
-import DexJumpSidebar from './components/DexJumpSidebar';
-import GridView from './components/GridView';
-import DetailView from './components/DetailView';
-import AddPokemonModal from './components/AddPokemonModal';
+} from './components/Icons.tsx';
+import { Toast, ConfirmDialog } from './components/UI.tsx';
+import StatsBar from './components/StatsBar.tsx';
+import DexJumpSidebar from './components/DexJumpSidebar.tsx';
+import GridView from './components/GridView.tsx';
+import DetailView from './components/DetailView.tsx';
+import AddPokemonModal from './components/AddPokemonModal.tsx';
 
 const App = () => {
     const [view, setView] = useState<'grid' | 'detail'>('grid');
@@ -49,7 +49,7 @@ const App = () => {
         showEX: true, showGX: true, showV: true, showVMAX: true, showVSTAR: true, showMEGA: true,
     });
     
-    const [gridColumns, setGridColumns] = useState(0); // 0 = Auto
+    const [gridColumns, setGridColumns] = useState(0); 
     const [savedScroll, setSavedScroll] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,25 +59,31 @@ const App = () => {
         const savedExtras = localStorage.getItem('project151_extras');
         const savedColumns = localStorage.getItem('project151_gridColumns');
         
-        if (savedBinder) {
-            setBinder(JSON.parse(savedBinder));
-            if (savedSlots) setCustomSlots(JSON.parse(savedSlots));
-            if (savedExtras) setExtraPokemon(JSON.parse(savedExtras));
+        if (savedBinder && savedBinder !== "{}" && savedBinder !== "undefined") {
+            try {
+                setBinder(JSON.parse(savedBinder));
+                if (savedSlots) setCustomSlots(JSON.parse(savedSlots));
+                if (savedExtras) setExtraPokemon(JSON.parse(savedExtras));
+            } catch (e) {
+                console.error("Failed to parse local storage", e);
+                loadDefaults();
+            }
         } else {
-            // Load Default Data from CSV Constant if no local storage found
-            const { binder: defaultBinder, extras: defaultExtras, slots: defaultSlots } = parseCSVData(DEFAULT_COLLECTION_CSV);
-            setBinder(defaultBinder);
-            setExtraPokemon(defaultExtras);
-            setCustomSlots(defaultSlots);
-            
-            // Persist the defaults immediately so they stick
-            localStorage.setItem('project151_binder', JSON.stringify(defaultBinder));
-            localStorage.setItem('project151_extras', JSON.stringify(defaultExtras));
-            localStorage.setItem('project151_slots', JSON.stringify(defaultSlots));
+            loadDefaults();
         }
 
         if (savedColumns) setGridColumns(parseInt(savedColumns));
     }, []);
+
+    const loadDefaults = () => {
+        const { binder: defaultBinder, extras: defaultExtras, slots: defaultSlots } = parseCSVData(DEFAULT_COLLECTION_CSV);
+        setBinder(defaultBinder);
+        setExtraPokemon(defaultExtras);
+        setCustomSlots(defaultSlots);
+        localStorage.setItem('project151_binder', JSON.stringify(defaultBinder));
+        localStorage.setItem('project151_extras', JSON.stringify(defaultExtras));
+        localStorage.setItem('project151_slots', JSON.stringify(defaultSlots));
+    };
 
     useEffect(() => {
         if (view === 'detail') {
@@ -88,20 +94,19 @@ const App = () => {
             }, 0);
             return () => clearTimeout(timer);
         }
-    }, [view]);
+    }, [view, savedScroll]);
 
     const fullEntries = useMemo(() => {
         let currentDex = 1;
         let result: PokemonEntry[] = [];
         
-        // Process Base 1-151
         RAW_POKEMON.forEach(raw => {
             let entry: PokemonEntry;
             if (typeof raw === 'string') {
                 entry = { name: raw, apiId: currentDex, key: currentDex.toString(), isMega: false, displayId: currentDex.toString().padStart(3, '0'), isBase: true, isTrainer: false };
                 currentDex++;
                 result.push(entry);
-            } else if (raw && typeof raw === 'object' && !raw.isMega) {
+            } else if (raw && typeof raw === 'object') {
                 entry = { 
                     name: raw.name || "", 
                     cardImage: raw.cardImage,
@@ -169,7 +174,6 @@ const App = () => {
             }
         });
         
-        // Sorting Modes
         if (sortMode === 'value-high') {
              finalResult.sort((a, b) => {
                  const valA = parseFloat(binder[a.key]?.value || "0");
@@ -320,45 +324,32 @@ const App = () => {
     };
 
     const handleExportCSV = () => {
-        const generateAllEntries = () => {
-            let currentDex = 1;
-            let result: PokemonEntry[] = [];
+        const generateAllEntriesForExport = () => {
+            let curDex = 1;
+            let res: PokemonEntry[] = [];
             RAW_POKEMON.forEach(raw => {
-                let entry: PokemonEntry;
                 if (typeof raw === 'string') {
-                    entry = { name: raw, apiId: currentDex, key: currentDex.toString(), isMega: false, displayId: currentDex.toString().padStart(3, '0'), isBase: true, isTrainer: false };
-                    currentDex++;
-                    result.push(entry);
-                } else if (raw && typeof raw === 'object' && !raw.isMega) {
-                    entry = { 
-                        name: raw.name || "", 
-                        cardImage: raw.cardImage,
-                        apiId: currentDex, 
-                        key: currentDex.toString(), 
-                        isMega: false, 
-                        displayId: currentDex.toString().padStart(3, '0'), 
-                        isBase: true, 
-                        isTrainer: false 
-                    };
-                    currentDex++;
-                    result.push(entry);
+                    res.push({ name: raw, apiId: curDex, key: curDex.toString(), isMega: false, displayId: curDex.toString().padStart(3, '0'), isBase: true, isTrainer: false });
+                    curDex++;
+                } else {
+                    res.push({ name: raw.name || "", cardImage: raw.cardImage, apiId: curDex, key: curDex.toString(), isMega: false, displayId: curDex.toString().padStart(3, '0'), isBase: true, isTrainer: false });
+                    curDex++;
                 }
             });
-            const sortedExtras = [...extraPokemon].sort((a, b) => a.apiId - b.apiId);
-            result = [...result, ...sortedExtras];
-            let finalResult: PokemonEntry[] = [];
-            result.forEach(entry => {
-                finalResult.push(entry);
-                if (customSlots[entry.key]) {
-                    customSlots[entry.key].forEach(childKey => {
-                        finalResult.push({ ...entry, key: childKey, isCustom: true, name: entry.name + " (Slot)", isTrainer: entry.isTrainer });
+            extraPokemon.forEach(e => res.push(e));
+            let fin: PokemonEntry[] = [];
+            res.forEach(e => {
+                fin.push(e);
+                if (customSlots[e.key]) {
+                    customSlots[e.key].forEach(ck => {
+                        fin.push({ ...e, key: ck, isCustom: true, name: e.name + " (Slot)", isTrainer: e.isTrainer });
                     });
                 }
             });
-            return finalResult;
+            return fin;
         };
 
-        const allEntries = generateAllEntries();
+        const allEntries = generateAllEntriesForExport();
         const headers = ["SystemKey", "Name", "ApiId", "DisplayId", "Category", "ParentKey", "Owned", "Value", "ImageURL", "FanArtURL", "CardType", "DreamURL", "IdealURL", "IsTrainer"];
         const rows = [headers.join(",")];
 
@@ -380,9 +371,7 @@ const App = () => {
             const safeCardType = `"${(b.cardType || "standard").replace(/"/g, '""')}"`;
 
             const hasData = b.owned || b.url || b.value || b.fanArtUrl || b.dreamUrl || b.idealUrl || (b.cardType && b.cardType !== 'standard');
-            const isStructural = category === "Manual" || category === "Slot";
-
-            if (hasData || isStructural) {
+            if (hasData || category === "Manual" || category === "Slot") {
                 const row = [entry.key, safeName, entry.apiId, entry.displayId, category, parentKey, b.owned ? "TRUE" : "FALSE", safeValue, safeUrl, safeFanArt, safeCardType, safeDream, safeIdeal, entry.isTrainer ? "TRUE" : "FALSE"];
                 rows.push(row.join(","));
             }
@@ -395,7 +384,6 @@ const App = () => {
         a.download = 'project151_collection.csv';
         a.click();
         URL.revokeObjectURL(url);
-        setToastMsg("Collection Exported!");
     };
 
     const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -406,38 +394,19 @@ const App = () => {
             try {
                 const text = e.target?.result as string;
                 const { binder: newBinder, extras: newExtras, slots: newSlots } = parseCSVData(text);
-                
                 setBinder(newBinder);
                 setExtraPokemon(newExtras);
                 setCustomSlots(newSlots);
-                
                 localStorage.setItem('project151_binder', JSON.stringify(newBinder));
                 localStorage.setItem('project151_extras', JSON.stringify(newExtras));
                 localStorage.setItem('project151_slots', JSON.stringify(newSlots));
-                
-                setToastMsg("Collection Imported Successfully!");
+                setToastMsg("Imported!");
             } catch (err) {
-                console.error(err);
-                setToastMsg("Error parsing CSV");
+                setToastMsg("Import Error");
             }
             event.target.value = '';
         };
         reader.readAsText(file);
-    };
-
-    const handleClearData = () => {
-        setConfirmConfig({
-            msg: "WARNING: This will permanently delete all your collected cards, custom slots, and manual entries. Start a fresh collection?",
-            action: () => {
-                localStorage.removeItem('project151_binder');
-                localStorage.removeItem('project151_slots');
-                localStorage.removeItem('project151_extras');
-                setBinder({});
-                setCustomSlots({});
-                setExtraPokemon([]);
-                setToastMsg("Data Cleared - Fresh Start!");
-            }
-        });
     };
 
     const toggleFilter = (key: keyof FilterSettings) => setFilterSettings(prev => ({ ...prev, [key]: !prev[key] }));
@@ -453,260 +422,88 @@ const App = () => {
             {view === 'grid' && (
                 <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse gap-4 items-end">
                     <button 
-                        onClick={() => {
-                            const newState = !isFabOpen;
-                            setIsFabOpen(newState);
-                            if (!newState) {
-                                setShowSortMenu(false);
-                                setShowViewMenu(false);
-                                setShowMobileSearch(false);
-                            }
-                        }} 
+                        onClick={() => setIsFabOpen(!isFabOpen)} 
                         className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center border-2 transition-all duration-300 z-50 ${isFabOpen ? 'bg-slate-700 border-slate-500 rotate-90 text-white' : 'bg-indigo-600 border-indigo-400 text-white'}`}
                     >
                         {isFabOpen ? <IconX /> : <IconMenu />}
                     </button>
 
-                    <div className={`flex flex-col-reverse gap-3 items-end transition-all duration-300 ${isFabOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none absolute bottom-0 right-0'}`}>
-                        
+                    <div className={`flex flex-col-reverse gap-3 items-end transition-all duration-300 ${isFabOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
                         <div className="relative flex items-center justify-end">
                             {showMobileSearch && (
                                 <div className="absolute right-14 animate-zoom origin-right z-50">
-                                    <div className="relative">
-                                        <input 
-                                            autoFocus
-                                            type="text" 
-                                            placeholder="Search..." 
-                                            className="bg-slate-800/95 backdrop-blur border border-indigo-500 rounded-full pl-4 pr-10 py-2 text-sm focus:outline-none shadow-2xl w-48 text-white" 
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)} 
-                                        />
-                                        {searchQuery && (
-                                            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><IconX size={14}/></button>
-                                        )}
-                                    </div>
+                                    <input autoFocus type="text" placeholder="Search..." className="bg-slate-800/95 border border-indigo-500 rounded-full pl-4 pr-10 py-2 text-sm focus:outline-none shadow-2xl w-48 text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                                 </div>
                             )}
-                            <button 
-                                onClick={() => { setShowMobileSearch(!showMobileSearch); setShowSortMenu(false); setShowViewMenu(false); }} 
-                                className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center border transition-all ${showMobileSearch ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-800/90 backdrop-blur border-slate-600 text-indigo-400 hover:text-white'}`}
-                            >
-                                <IconSearch />
-                            </button>
+                            <button onClick={() => setShowMobileSearch(!showMobileSearch)} className="w-10 h-10 rounded-full shadow-lg bg-slate-800/90 border border-slate-600 text-indigo-400 flex items-center justify-center"><IconSearch /></button>
                         </div>
-
                         <div className="relative flex items-center justify-end">
                             {showSortMenu && (
                                 <div className="absolute right-14 top-0 bg-slate-800 border border-slate-600 rounded-xl p-2 shadow-2xl flex flex-col gap-1 w-32 animate-zoom origin-right z-50">
-                                    <button onClick={() => setSortMode('dex')} className={`px-2 py-1.5 rounded text-[10px] font-bold text-left ${sortMode === 'dex' ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"}`}>Dex Order</button>
-                                    <button onClick={() => setSortMode('value-high')} className={`px-2 py-1.5 rounded text-[10px] font-bold text-left ${sortMode === 'value-high' ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"}`}>Value High</button>
-                                    <button onClick={() => setSortMode('value-low')} className={`px-2 py-1.5 rounded text-[10px] font-bold text-left ${sortMode === 'value-low' ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"}`}>Value Low</button>
+                                    <button onClick={() => setSortMode('dex')} className={`px-2 py-1.5 rounded text-[10px] font-bold text-left ${sortMode === 'dex' ? "bg-indigo-600 text-white" : "text-slate-400"}`}>Dex Order</button>
+                                    <button onClick={() => setSortMode('value-high')} className={`px-2 py-1.5 rounded text-[10px] font-bold text-left ${sortMode === 'value-high' ? "bg-indigo-600 text-white" : "text-slate-400"}`}>Value High</button>
+                                    <button onClick={() => setSortMode('value-low')} className={`px-2 py-1.5 rounded text-[10px] font-bold text-left ${sortMode === 'value-low' ? "bg-indigo-600 text-white" : "text-slate-400"}`}>Value Low</button>
                                 </div>
                             )}
-                            <button 
-                                onClick={() => { setShowSortMenu(!showSortMenu); setShowMobileSearch(false); setShowViewMenu(false); }} 
-                                className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center border transition-all ${showSortMenu ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-800/90 backdrop-blur border-slate-600 text-indigo-400 hover:text-white'}`}
-                            >
-                                <IconSort />
-                            </button>
+                            <button onClick={() => setShowSortMenu(!showSortMenu)} className="w-10 h-10 rounded-full shadow-lg bg-slate-800/90 border border-slate-600 text-indigo-400 flex items-center justify-center"><IconSort /></button>
                         </div>
-
                         <div className="relative flex items-center justify-end">
                             {showViewMenu && (
                                 <div className="absolute right-14 bottom-0 bg-slate-800 border border-slate-600 rounded-xl p-3 shadow-2xl flex flex-col gap-3 w-48 animate-zoom origin-bottom-right z-50">
                                     <div className="flex flex-col gap-2">
-                                        <button 
-                                            onClick={() => toggleFilter('showOwned')} 
-                                            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border flex items-center justify-between ${filterSettings.showOwned ? "bg-green-900/50 text-green-400 border-green-500" : "bg-slate-700 text-slate-500 border-slate-600"}`}
-                                        >
-                                            <span>Show Owned</span>
-                                            {filterSettings.showOwned && <IconCheck />}
-                                        </button>
-                                        <button 
-                                            onClick={() => toggleFilter('showNotOwned')} 
-                                            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border flex items-center justify-between ${filterSettings.showNotOwned ? "bg-rose-900/50 text-rose-400 border-rose-500" : "bg-slate-700 text-slate-500 border-slate-600"}`}
-                                        >
-                                            <span>Show Missing</span>
-                                            {filterSettings.showNotOwned && <IconCheck />}
-                                        </button>
+                                        <button onClick={() => toggleFilter('showOwned')} className={`px-3 py-2 rounded-lg text-xs font-bold border flex items-center justify-between ${filterSettings.showOwned ? "bg-green-900/50 text-green-400 border-green-500" : "bg-slate-700 text-slate-500 border-slate-600"}`}><span>Show Owned</span>{filterSettings.showOwned && <IconCheck />}</button>
+                                        <button onClick={() => toggleFilter('showNotOwned')} className={`px-3 py-2 rounded-lg text-xs font-bold border flex items-center justify-between ${filterSettings.showNotOwned ? "bg-rose-900/50 text-rose-400 border-rose-500" : "bg-slate-700 text-slate-500 border-slate-600"}`}><span>Show Missing</span>{filterSettings.showNotOwned && <IconCheck />}</button>
                                     </div>
-
                                     <div className="border-t border-slate-700 pt-2 flex flex-col gap-2">
-                                        <span className="text-[10px] text-slate-400 font-bold uppercase">Art Options</span>
-                                        <button 
-                                            onClick={() => toggleFilter('showClown')} 
-                                            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border flex items-center justify-between ${filterSettings.showClown ? "bg-pink-900/50 text-pink-400 border-pink-500" : "bg-slate-700 text-slate-500 border-slate-600"}`}
-                                        >
-                                            <span className="flex items-center gap-2">🤡 Fan Art</span>
-                                            {filterSettings.showClown && <IconCheck />}
-                                        </button>
-                                        <button 
-                                            onClick={() => toggleFilter('showDream')} 
-                                            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border flex items-center justify-between ${filterSettings.showDream ? "bg-amber-900/50 text-amber-400 border-amber-500" : "bg-slate-700 text-slate-500 border-slate-600"}`}
-                                        >
-                                            <span className="flex items-center gap-2"><IconStar /> Dream</span>
-                                            {filterSettings.showDream && <IconCheck />}
-                                        </button>
-                                        <button 
-                                            onClick={() => toggleFilter('showIdeal')} 
-                                            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border flex items-center justify-between ${filterSettings.showIdeal ? "bg-cyan-900/50 text-cyan-400 border-cyan-500" : "bg-slate-700 text-slate-500 border-slate-600"}`}
-                                        >
-                                            <span className="flex items-center gap-2"><IconSparkles /> Ideal</span>
-                                            {filterSettings.showIdeal && <IconCheck />}
-                                        </button>
+                                        <button onClick={() => toggleFilter('showClown')} className={`px-3 py-2 rounded-lg text-xs font-bold border flex items-center justify-between ${filterSettings.showClown ? "bg-pink-900/50 text-pink-400 border-pink-500" : "bg-slate-700 text-slate-500 border-slate-600"}`}><span className="flex items-center gap-2">🤡 Fan Art</span>{filterSettings.showClown && <IconCheck />}</button>
+                                        <button onClick={() => toggleFilter('showDream')} className={`px-3 py-2 rounded-lg text-xs font-bold border flex items-center justify-between ${filterSettings.showDream ? "bg-amber-900/50 text-amber-400 border-amber-500" : "bg-slate-700 text-slate-500 border-slate-600"}`}><span className="flex items-center gap-2"><IconStar /> Dream</span>{filterSettings.showDream && <IconCheck />}</button>
+                                        <button onClick={() => toggleFilter('showIdeal')} className={`px-3 py-2 rounded-lg text-xs font-bold border flex items-center justify-between ${filterSettings.showIdeal ? "bg-cyan-900/50 text-cyan-400 border-cyan-500" : "bg-slate-700 text-slate-500 border-slate-600"}`}><span className="flex items-center gap-2"><IconSparkles /> Ideal</span>{filterSettings.showIdeal && <IconCheck />}</button>
                                     </div>
-
-                                    <div className="border-t border-slate-700 pt-2">
-                                        <span className="text-[10px] text-slate-400 font-bold uppercase block mb-2">Grid Columns</span>
-                                        <div className="grid grid-cols-5 gap-1">
-                                            {[0, 1, 2, 4, 6].map(col => (
-                                                <button 
-                                                    key={col}
-                                                    onClick={() => handleSetGridColumns(col)}
-                                                    className={`py-1 rounded text-xs font-bold border ${gridColumns === col ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-700 border-slate-600 text-slate-400 hover:text-white'}`}
-                                                >
-                                                    {col === 0 ? 'A' : col}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    <div className="border-t border-slate-700 pt-2 grid grid-cols-5 gap-1">
+                                        {[0, 1, 2, 4, 6].map(col => (
+                                            <button key={col} onClick={() => handleSetGridColumns(col)} className={`py-1 rounded text-xs font-bold border ${gridColumns === col ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-400'}`}>{col === 0 ? 'A' : col}</button>
+                                        ))}
                                     </div>
                                 </div>
                             )}
-                            <button 
-                                onClick={() => { setShowViewMenu(!showViewMenu); setShowMobileSearch(false); setShowSortMenu(false); }} 
-                                className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center border transition-all ${showViewMenu ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-800/90 backdrop-blur border-slate-600 text-indigo-400 hover:text-white'}`}
-                            >
-                                <IconEye />
-                            </button>
+                            <button onClick={() => setShowViewMenu(!showViewMenu)} className="w-10 h-10 rounded-full shadow-lg bg-slate-800/90 border border-slate-600 text-indigo-400 flex items-center justify-center"><IconEye /></button>
                         </div>
                     </div>
                 </div>
             )}
 
-            <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-700 shadow-xl transition-all">
-                <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-y-2">
-                    <div className="flex items-center gap-3 cursor-pointer select-none hover:opacity-80 transition-opacity" onClick={() => window.location.reload()}>
-                        <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center text-white font-bold text-slate-900"><IconDna /></div>
-                        <div>
-                            <h1 className="text-xl font-bold tracking-tight text-white">Pro-151 <span className="text-indigo-400 text-sm font-normal">v3.5</span></h1>
-                        </div>
+            <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-700 shadow-xl">
+                <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
+                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.location.reload()}>
+                        <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center text-slate-900 font-bold"><IconDna /></div>
+                        <h1 className="text-xl font-bold tracking-tight text-white">Pro-151 <span className="text-indigo-400 text-sm font-normal">v3.5</span></h1>
                     </div>
-
                     <div className="flex items-center gap-2">
-                            {view === 'grid' && (
-                            <div className="hidden md:flex relative">
-                                <div className="absolute left-3 top-2.5 text-slate-500"><IconSearch /></div>
-                                <input type="text" placeholder="Search..." className="bg-slate-800 border border-slate-700 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 w-48" onChange={(e) => setSearchQuery(e.target.value)} />
-                            </div>
-                        )}
-                        <button onClick={() => setShowStats(!showStats)} className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors text-xs font-bold border border-transparent ${showStats ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`} title="Toggle Progress & Value"><IconGraph /></button>
-                        <button onClick={() => setShowFilters(!showFilters)} className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors text-xs font-bold border border-transparent ${showFilters ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`} title="Filters"><IconFilter /></button>
-                        
+                        <button onClick={() => setShowStats(!showStats)} className={`p-2 rounded-full transition-colors ${showStats ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}><IconGraph /></button>
+                        <button onClick={() => setShowFilters(!showFilters)} className={`p-2 rounded-full transition-colors ${showFilters ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}><IconFilter /></button>
                         <div className="relative">
-                            <button 
-                                onClick={() => setShowSaveMenu(!showSaveMenu)} 
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors text-xs font-bold border ${showSaveMenu ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-800 text-slate-400 hover:text-white border-transparent'}`} 
-                                title="Data Options"
-                            >
-                                <IconSave /> <span className="hidden sm:inline">Data</span>
-                            </button>
-                            
+                            <button onClick={() => setShowSaveMenu(!showSaveMenu)} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${showSaveMenu ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-transparent text-slate-400'}`}><IconSave /> Data</button>
                             {showSaveMenu && (
                                 <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 border border-slate-600 rounded-xl p-2 shadow-2xl flex flex-col gap-1 z-50 animate-zoom origin-top-right">
-                                    <button 
-                                        onClick={() => { handleExportCSV(); setShowSaveMenu(false); }} 
-                                        className="px-3 py-2 rounded-lg text-xs font-bold text-left transition-all flex items-center gap-3 text-slate-300 hover:bg-slate-700 hover:text-green-400"
-                                    >
-                                        <IconDownload /> Export CSV
-                                    </button>
-                                    <button 
-                                        onClick={() => { fileInputRef.current?.click(); setShowSaveMenu(false); }} 
-                                        className="px-3 py-2 rounded-lg text-xs font-bold text-left transition-all flex items-center gap-3 text-slate-300 hover:bg-slate-700 hover:text-blue-400"
-                                    >
-                                        <IconUpload /> Import CSV
-                                    </button>
-                                    <div className="h-px bg-slate-700 my-1"></div>
-                                    <button 
-                                        onClick={() => { handleClearData(); setShowSaveMenu(false); }} 
-                                        className="px-3 py-2 rounded-lg text-xs font-bold text-left transition-all flex items-center gap-3 text-slate-300 hover:bg-red-900/50 hover:text-red-400"
-                                    >
-                                        <IconTrash /> Clear Data
-                                    </button>
+                                    <button onClick={() => { handleExportCSV(); setShowSaveMenu(false); }} className="px-3 py-2 rounded-lg text-xs font-bold text-left text-slate-300 flex items-center gap-3 hover:bg-slate-700"><IconDownload /> Export CSV</button>
+                                    <button onClick={() => { fileInputRef.current?.click(); setShowSaveMenu(false); }} className="px-3 py-2 rounded-lg text-xs font-bold text-left text-slate-300 flex items-center gap-3 hover:bg-slate-700"><IconUpload /> Import CSV</button>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
-
                 {view === 'grid' && showStats && <StatsBar binder={binder} totalCards={stats.total} ownedCards={stats.owned} />}
-
                 {showFilters && (
-                    <div className="border-t border-slate-800 bg-slate-900/95 backdrop-blur-sm shadow-inner transition-all">
-                        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
-                            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-1 md:pb-0">
-                                <button 
-                                    onClick={() => toggleFilter('showGen1Only')} 
-                                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all border shadow-sm ${filterSettings.showGen1Only ? "bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-500" : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-white"}`}
-                                >
-                                    151
-                                </button>
-                                <button 
-                                    onClick={() => { toggleFilter('showBase151'); if(filterSettings.show1999) setFilterSettings(prev => ({...prev, show1999: false})); }} 
-                                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all border shadow-sm ${filterSettings.showBase151 ? "bg-purple-600 text-white border-purple-500 hover:bg-purple-500" : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-white"}`}
-                                >
-                                    NEW
-                                </button>
-                                <button 
-                                    onClick={() => { toggleFilter('show1999'); if(filterSettings.showBase151) setFilterSettings(prev => ({...prev, showBase151: false})); }} 
-                                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all border shadow-sm ${filterSettings.show1999 ? "bg-yellow-600 text-white border-yellow-500 hover:bg-yellow-500" : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-white"}`}
-                                >
-                                    OG
-                                </button>
-                                <div className="w-px h-5 bg-slate-700 mx-1 flex-shrink-0"></div>
-                                <button 
-                                    onClick={() => toggleFilter('showSlots')} 
-                                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all border shadow-sm ${filterSettings.showSlots ? "bg-blue-600 text-white border-blue-500 hover:bg-blue-500" : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-white"}`}
-                                >
-                                    Slots+
-                                </button>
-                                <button 
-                                    onClick={() => toggleFilter('showTrainers')} 
-                                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all border shadow-sm ${filterSettings.showTrainers ? "bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-500" : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-white"}`}
-                                >
-                                    Trainer
-                                </button>
-                            </div>
-                            
-                            <div className="h-px w-full bg-slate-800 md:hidden"></div>
-
-                            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-1 md:pb-0 md:justify-end">
-                                {[
-                                    { id: "Standard", label: "STD" },
-                                    { id: "EX", label: "EX" },
-                                    { id: "GX", label: "GX" },
-                                    { id: "V", label: "V" },
-                                    { id: "VMAX", label: "VMAX" },
-                                    { id: "VSTAR", label: "VSTAR" },
-                                    { id: "MEGA", label: "MEGA" }
-                                ].map(r => {
-                                    const key = `show${r.id}` as keyof FilterSettings;
-                                    const isActive = filterSettings[key];
-                                    return (
-                                        <button 
-                                            key={r.id} 
-                                            onClick={() => toggleFilter(key)} 
-                                            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all border shadow-sm uppercase tracking-wider ${
-                                                isActive 
-                                                ? "bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-500" 
-                                                : "bg-slate-800 text-slate-500 border-slate-700 hover:border-slate-500 hover:text-slate-400"
-                                            }`}
-                                        >
-                                            {r.label}
-                                        </button>
-                                    )
-                                })}
-                            </div>
-                        </div>
+                    <div className="border-t border-slate-800 bg-slate-900/95 backdrop-blur-sm p-4 flex flex-wrap gap-2">
+                         {[
+                            { key: 'showGen1Only', label: '151' },
+                            { key: 'showBase151', label: 'NEW' },
+                            { key: 'show1999', label: 'OG' },
+                            { key: 'showSlots', label: 'Slots+' },
+                            { key: 'showTrainers', label: 'Trainer' }
+                        ].map(f => (
+                            <button key={f.key} onClick={() => toggleFilter(f.key as keyof FilterSettings)} className={`px-4 py-1.5 rounded-full text-[11px] font-bold border ${filterSettings[f.key as keyof FilterSettings] ? "bg-indigo-600 text-white border-indigo-500" : "bg-slate-800 text-slate-400 border-slate-700"}`}>{f.label}</button>
+                        ))}
                     </div>
                 )}
             </header>
@@ -715,37 +512,11 @@ const App = () => {
 
             <main className="max-w-7xl mx-auto px-4 py-6">
                 {view === 'grid' ? (
-                    <GridView 
-                        entries={fullEntries}
-                        searchQuery={searchQuery} 
-                        binder={binder} 
-                        gridColumns={gridColumns}
-                        filterSettings={filterSettings}
-                        onSelect={handleEntrySelect} 
-                        onToggleOwned={toggleOwnedStatus} 
-                        onOpenAddModal={() => setShowAddModal(true)}
-                    />
+                    <GridView entries={fullEntries} searchQuery={searchQuery} binder={binder} gridColumns={gridColumns} filterSettings={filterSettings} onSelect={handleEntrySelect} onToggleOwned={toggleOwnedStatus} onOpenAddModal={() => setShowAddModal(true)} />
                 ) : (
-                    selectedEntry && (
-                        <DetailView 
-                            entry={selectedEntry} 
-                            binderEntry={binder[selectedEntry.key]}
-                            onSave={saveCardToBinder} 
-                            onToggleOwned={toggleOwnedStatus}
-                            onAddSlot={addCustomSlot}
-                            onRemoveSlot={removeCustomSlot}
-                            onSwapSlot={swapSlotWithParent}
-                            onDeletePokemon={deleteExtraPokemon}
-                            onBack={() => setView('grid')}
-                            filterSettings={filterSettings}
-                        />
-                    )
+                    selectedEntry && <DetailView entry={selectedEntry} binderEntry={binder[selectedEntry.key]} onSave={saveCardToBinder} onToggleOwned={toggleOwnedStatus} onAddSlot={addCustomSlot} onRemoveSlot={removeCustomSlot} onSwapSlot={swapSlotWithParent} onDeletePokemon={deleteExtraPokemon} onBack={() => setView('grid')} filterSettings={filterSettings} />
                 )}
             </main>
-
-            <footer className="text-center py-6 text-[10px] text-slate-600 uppercase tracking-widest font-bold opacity-50 hover:opacity-100 transition-opacity select-none">
-                Created by ConorRM
-            </footer>
         </div>
     );
 };
