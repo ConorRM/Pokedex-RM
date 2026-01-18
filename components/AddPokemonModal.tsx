@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { IconX } from './Icons';
-import { GEN_2_POKEMON, GEN_3_POKEMON } from '../constants';
+import { GENERATION_DATA } from '../constants';
 import { PokemonEntry } from '../types';
 
 interface AddPokemonModalProps {
@@ -10,7 +10,7 @@ interface AddPokemonModalProps {
 
 const AddPokemonModal: React.FC<AddPokemonModalProps> = ({ onClose, onAdd }) => {
     const [mode, setMode] = useState<'list' | 'manual'>('list');
-    const [activeGen, setActiveGen] = useState(2);
+    const [activeGen, setActiveGen] = useState(1);
     const [selectedId, setSelectedId] = useState("");
     const [url, setUrl] = useState("");
     
@@ -19,7 +19,7 @@ const AddPokemonModal: React.FC<AddPokemonModalProps> = ({ onClose, onAdd }) => 
     const [manualId, setManualId] = useState("");
     const [isTrainer, setIsTrainer] = useState(false);
 
-    const currentList = activeGen === 2 ? GEN_2_POKEMON : GEN_3_POKEMON;
+    const currentList = GENERATION_DATA[activeGen] || [];
 
     const handleSubmit = () => {
         if (mode === 'list') {
@@ -70,12 +70,19 @@ const AddPokemonModal: React.FC<AddPokemonModalProps> = ({ onClose, onAdd }) => 
                 <div className="space-y-4">
                     {mode === 'list' ? (
                         <>
-                            <div className="flex gap-2 mb-2">
-                                <button onClick={() => { setActiveGen(2); setSelectedId(""); }} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${activeGen === 2 ? 'bg-slate-700 text-white ring-1 ring-indigo-500' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Gen 2</button>
-                                <button onClick={() => { setActiveGen(3); setSelectedId(""); }} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${activeGen === 3 ? 'bg-slate-700 text-white ring-1 ring-indigo-500' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Gen 3</button>
+                            <div className="flex overflow-x-auto gap-2 mb-2 pb-2 -mx-2 px-2 no-scrollbar snap-x">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(gen => (
+                                    <button 
+                                        key={gen}
+                                        onClick={() => { setActiveGen(gen); setSelectedId(""); }} 
+                                        className={`snap-center flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition-all border ${activeGen === gen ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg scale-105' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'}`}
+                                    >
+                                        Gen {gen}
+                                    </button>
+                                ))}
                             </div>
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Select Pokemon</label>
+                                <label className="block text-xs text-slate-400 mb-1">Select Pokemon (Gen {activeGen})</label>
                                 <select className="w-full glass-input rounded px-3 py-2 text-white" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
                                     <option value="">-- Choose a Pokemon --</option>
                                     {currentList.map(p => <option key={p.id} value={p.id}>#{p.id} - {p.name}</option>)}

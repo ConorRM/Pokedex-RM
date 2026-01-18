@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { PokemonEntry, Binder, CustomSlots, FilterSettings, RawPokemonData } from './types';
-import { RAW_POKEMON } from './constants';
-import { parseCSVRow } from './utils';
+import { RAW_POKEMON, DEFAULT_COLLECTION_CSV } from './constants';
+import { parseCSVRow, parseCSVData } from './utils';
 import { 
     IconSearch, IconCheck, IconDna, IconDownload, IconUpload, IconTrash, 
     IconSort, IconEye, IconMenu, IconX, IconGraph, IconFilter, IconSave, 
@@ -59,9 +59,23 @@ const App = () => {
         const savedExtras = localStorage.getItem('project151_extras');
         const savedColumns = localStorage.getItem('project151_gridColumns');
         
-        if (savedBinder) setBinder(JSON.parse(savedBinder));
-        if (savedSlots) setCustomSlots(JSON.parse(savedSlots));
-        if (savedExtras) setExtraPokemon(JSON.parse(savedExtras));
+        if (savedBinder) {
+            setBinder(JSON.parse(savedBinder));
+            if (savedSlots) setCustomSlots(JSON.parse(savedSlots));
+            if (savedExtras) setExtraPokemon(JSON.parse(savedExtras));
+        } else {
+            // Load Default Data from CSV Constant if no local storage found
+            const { binder: defaultBinder, extras: defaultExtras, slots: defaultSlots } = parseCSVData(DEFAULT_COLLECTION_CSV);
+            setBinder(defaultBinder);
+            setExtraPokemon(defaultExtras);
+            setCustomSlots(defaultSlots);
+            
+            // Persist the defaults immediately so they stick
+            localStorage.setItem('project151_binder', JSON.stringify(defaultBinder));
+            localStorage.setItem('project151_extras', JSON.stringify(defaultExtras));
+            localStorage.setItem('project151_slots', JSON.stringify(defaultSlots));
+        }
+
         if (savedColumns) setGridColumns(parseInt(savedColumns));
     }, []);
 
@@ -391,53 +405,16 @@ const App = () => {
         reader.onload = (e) => {
             try {
                 const text = e.target?.result as string;
-                const lines = text.split("\n");
-                const newBinder: Binder = {};
-                const newExtras: PokemonEntry[] = [];
-                const newSlots: CustomSlots = {};
-                for(let i=1; i<lines.length; i++) {
-                    if (!lines[i].trim()) continue;
-                    const row = parseCSVRow(lines[i]); 
-                    if (row.length < 9) continue;
-                    const [key, name, apiId, displayId, category, parentKey, ownedStr, value, url, fanArtUrl, cardType, dreamUrl, idealUrl, isTrainerStr] = row;
-                    const isOwned = ownedStr === "TRUE";
-                    const isTrainer = isTrainerStr === "TRUE";
-                    const typeVal = cardType || "standard";
-                    if (isOwned || value || url || name || fanArtUrl || dreamUrl || idealUrl || typeVal !== "standard") {
-                        newBinder[key] = { 
-                            name: name, 
-                            owned: isOwned, 
-                            value: value, 
-                            url: url, 
-                            fanArtUrl: fanArtUrl || "", 
-                            dreamUrl: dreamUrl || "", 
-                            idealUrl: idealUrl || "",
-                            cardType: typeVal 
-                        };
-                    }
-                    if (category === "Manual") {
-                        newExtras.push({ 
-                            name: name, 
-                            apiId: parseInt(apiId) || 0, 
-                            key: key, 
-                            isMega: false, 
-                            displayId: displayId, 
-                            cardImage: null, 
-                            isTrainer: isTrainer, 
-                            isBase: false 
-                        });
-                    }
-                    if (category === "Slot" && parentKey) {
-                        if (!newSlots[parentKey]) newSlots[parentKey] = [];
-                        newSlots[parentKey].push(key);
-                    }
-                }
+                const { binder: newBinder, extras: newExtras, slots: newSlots } = parseCSVData(text);
+                
                 setBinder(newBinder);
                 setExtraPokemon(newExtras);
                 setCustomSlots(newSlots);
+                
                 localStorage.setItem('project151_binder', JSON.stringify(newBinder));
                 localStorage.setItem('project151_extras', JSON.stringify(newExtras));
                 localStorage.setItem('project151_slots', JSON.stringify(newSlots));
+                
                 setToastMsg("Collection Imported Successfully!");
             } catch (err) {
                 console.error(err);
