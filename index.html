@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro-151: Collector V3.5</title>
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1068/1068780.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; touch-action: pan-y; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .card-hover:hover { transform: translateY(-5px); transition: transform 0.2s; }
+        
+        /* --- RARITY STYLES --- */
+        .rarity-mega { border-color: #a855f7; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); }
+        .badge-mega { background: linear-gradient(135deg, #6b21a8, #a855f7); color: white; }
+        .rarity-ex { border-color: #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+        .badge-ex { background: linear-gradient(135deg, #047857, #10b981); color: white; }
+        .rarity-gx { border-color: #06b6d4; box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); }
+        .badge-gx { background: linear-gradient(135deg, #0891b2, #06b6d4); color: white; }
+        .rarity-v { border-color: #94a3b8; box-shadow: 0 0 15px rgba(148, 163, 184, 0.4); }
+        .badge-v { background: linear-gradient(135deg, #334155, #94a3b8); color: white; }
+        .rarity-vmax { border-color: #f43f5e; box-shadow: 0 0 15px rgba(244, 63, 94, 0.5); }
+        .badge-vmax { background: linear-gradient(135deg, #be123c, #f43f5e); color: white; }
+        .rarity-vstar { border-color: #eab308; box-shadow: 0 0 15px rgba(234, 179, 8, 0.5); }
+        .badge-vstar { background: linear-gradient(135deg, #a16207, #eab308); color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+        .extra-border { border-style: dashed; border-color: #3b82f6; }
+        .add-card-border { border-style: dashed; border-color: #4ade80; }
+        
+        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
+
+        .glass-input {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            backdrop-filter: blur(4px);
+            font-size: 16px; 
+        }
+        .glass-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(30, 41, 59, 0.9);
+        }
+        select.glass-input option {
+            background-color: #1e293b;
+            color: white;
+        }
+
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-zoom {
+            animation: zoomIn 0.2s ease-out forwards;
+        }
+        .dex-scrubber { touch-action: none; }
+        
+        .fan-art-badge {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+            animation: pulse-border 2s infinite;
+        }
+        .dream-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+            animation: pulse-border 3s infinite;
+        }
+        .ideal-badge {
+            background: linear-gradient(135deg, #06b6d4, #0ea5e9);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+            animation: pulse-border 4s infinite;
+        }
+        .stats-gradient {
+            background: linear-gradient(90deg, rgba(15,23,42,0) 0%, rgba(51,65,85,0.5) 50%, rgba(15,23,42,0) 100%);
+        }
+        .trainer-break {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.5;
+        }
+        .trainer-break::before {
+            content: "";
+            width: 100%;
+            height: 1px;
+            background: repeating-linear-gradient(90deg, #6366f1 0, #6366f1 4px, transparent 4px, transparent 12px); 
+        }
+        .trainer-break-top { margin: 1rem 0 1.5rem 0; }
+        .trainer-break-bottom { margin: 1.5rem 0 1rem 0; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
