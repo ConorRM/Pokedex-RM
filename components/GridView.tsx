@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { PokemonEntry, Binder, FilterSettings } from '../types.ts';
-import { getDefaultImage } from '../utils.ts';
-import { WOTC_BASE_MAP } from '../constants.ts';
-import { IconCheck, IconPalette, IconStar, IconSparkles, IconPlus } from './Icons.tsx';
+import { PokemonEntry, Binder, FilterSettings } from '../types';
+import { getDefaultImage } from '../utils';
+import { WOTC_BASE_MAP } from '../constants';
+import { IconCheck, IconPalette, IconStar, IconSparkles, IconPlus } from './Icons';
 
 interface GridViewProps {
     entries: PokemonEntry[];

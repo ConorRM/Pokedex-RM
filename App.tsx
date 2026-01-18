@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { PokemonEntry, Binder, CustomSlots, FilterSettings } from './types.ts';
-import { RAW_POKEMON, DEFAULT_COLLECTION_CSV } from './constants.ts';
-import { parseCSVData } from './utils.ts';
+import { PokemonEntry, Binder, CustomSlots, FilterSettings } from './types';
+import { RAW_POKEMON, DEFAULT_COLLECTION_CSV } from './constants';
+import { parseCSVData } from './utils';
 import { 
     IconSearch, IconCheck, IconDna, IconDownload, IconUpload, IconTrash, 
     IconSort, IconEye, IconMenu, IconX, IconGraph, IconFilter, IconSave, 
     IconStar, IconSparkles 
-} from './components/Icons.tsx';
-import { Toast, ConfirmDialog } from './components/UI.tsx';
-import StatsBar from './components/StatsBar.tsx';
-import DexJumpSidebar from './components/DexJumpSidebar.tsx';
-import GridView from './components/GridView.tsx';
-import DetailView from './components/DetailView.tsx';
-import AddPokemonModal from './components/AddPokemonModal.tsx';
+} from './components/Icons';
+import { Toast, ConfirmDialog } from './components/UI';
+import StatsBar from './components/StatsBar';
+import DexJumpSidebar from './components/DexJumpSidebar';
+import GridView from './components/GridView';
+import DetailView from './components/DetailView';
+import AddPokemonModal from './components/AddPokemonModal';
 
 const App = () => {
     const [view, setView] = useState<'grid' | 'detail'>('grid');
@@ -76,13 +76,18 @@ const App = () => {
     }, []);
 
     const loadDefaults = () => {
-        const { binder: defaultBinder, extras: defaultExtras, slots: defaultSlots } = parseCSVData(DEFAULT_COLLECTION_CSV);
-        setBinder(defaultBinder);
-        setExtraPokemon(defaultExtras);
-        setCustomSlots(defaultSlots);
-        localStorage.setItem('project151_binder', JSON.stringify(defaultBinder));
-        localStorage.setItem('project151_extras', JSON.stringify(defaultExtras));
-        localStorage.setItem('project151_slots', JSON.stringify(defaultSlots));
+        try {
+            const { binder: defaultBinder, extras: defaultExtras, slots: defaultSlots } = parseCSVData(DEFAULT_COLLECTION_CSV);
+            setBinder(defaultBinder);
+            setExtraPokemon(defaultExtras);
+            setCustomSlots(defaultSlots);
+            localStorage.setItem('project151_binder', JSON.stringify(defaultBinder));
+            localStorage.setItem('project151_extras', JSON.stringify(defaultExtras));
+            localStorage.setItem('project151_slots', JSON.stringify(defaultSlots));
+        } catch (error) {
+            console.error("Error loading defaults:", error);
+            setToastMsg("Error loading default data");
+        }
     };
 
     useEffect(() => {
